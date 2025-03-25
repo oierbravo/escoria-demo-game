@@ -72,17 +72,13 @@ var _current_mouse_pos: Vector2 = Vector2.ZERO
 
 var targeted_node: Node
 
+@onready var ui = $ui/Control
 
 func _ready():
 	hide_ui()
-	$ui/tooltip.connect("tooltip_size_updated", Callable(self, "update_tooltip_following_mouse_position"))
-
-
-func _enter_tree():
-	initialize_esc_game()
-
-	var room_selector_parent = $ui/HBoxContainer/VBoxContainer
-
+	ui.get_node("tooltip").connect("tooltip_size_updated", Callable(self, "update_tooltip_following_mouse_position"))
+	
+	var room_selector_parent = ui.get_node("HBoxContainer/VBoxContainer")
 	if ESCProjectSettingsManager.get_setting(ESCProjectSettingsManager.ENABLE_ROOM_SELECTOR) \
 		and room_selector_parent.get_node_or_null("room_select") == null:
 
@@ -92,6 +88,11 @@ func _enter_tree():
 				"/room_select.tscn"
 			).instantiate()
 		)
+
+func _enter_tree():
+	initialize_esc_game()
+
+	
 
 	var input_handler = Callable(self._process_input)
 	escoria.inputs_manager.register_custom_input_handler(input_handler)
@@ -230,7 +231,7 @@ func element_focused(element_id: String) -> void:
 		#targeted_node = target_obj.get_sprite()
 		#targeted_node.modulate = Color.GRAY
 
-	$ui/tooltip.set_target(target_obj.tooltip_name)
+	ui.get_node("tooltip").set_target(target_obj.tooltip_name)
 
 	if escoria.action_manager.current_action != VERB_USE \
 			and escoria.action_manager.current_tool == null \
@@ -247,7 +248,7 @@ func element_focused(element_id: String) -> void:
 				$mouse_layer/verbs_menu.set_by_name(target_obj.default_action)
 
 func element_unfocused() -> void:
-	$ui/tooltip.set_target("")
+	ui.get_node("tooltip").set_target("")
 	if not $mouse_layer/verbs_menu.action_manually_changed:
 		$mouse_layer/verbs_menu.set_by_name("walk")
 
@@ -345,12 +346,12 @@ func inventory_item_focused(inventory_item_global_id: String) -> void:
 		var item_node: ESCItem = escoria.object_manager.get_object(
 				inventory_item_global_id
 			).node
-		$ui/tooltip.set_target(item_node.tooltip_name)
+		ui.get_node("tooltip").set_target(item_node.tooltip_name)
 		$mouse_layer/verbs_menu.set_by_name(item_node.default_action_inventory)
 
 
 func inventory_item_unfocused() -> void:
-	$ui/tooltip.clear()
+	ui.get_node("tooltip").clear()
 	if escoria.action_manager.current_action == VERB_WALK:
 		$mouse_layer/verbs_menu.set_by_name(VERB_WALK)
 		if $mouse_layer/verbs_menu.action_manually_changed:
@@ -361,11 +362,11 @@ func inventory_item_unfocused() -> void:
 
 
 func open_inventory():
-	$ui/inventory_ui.show_inventory()
+	ui.get_node("inventory_ui").show_inventory()
 
 
 func close_inventory():
-	$ui/inventory_ui.hide_inventory()
+	ui.get_node("inventory_ui").hide_inventory()
 
 
 func mousewheel_action(direction: int):
@@ -373,17 +374,17 @@ func mousewheel_action(direction: int):
 
 
 func hide_ui():
-	$ui/inventory_ui.propagate_call("set_visible", [false], true)
-	$ui/tooltip.propagate_call("set_visible", [false], true)
-	$ui/HBoxContainer/VBoxContainer.visible = false
-	$ui/HBoxContainer/VBoxContainer/MenuButton.visible = false
+	ui.get_node("inventory_ui").propagate_call("set_visible", [false], true)
+	ui.get_node("tooltip").propagate_call("set_visible", [false], true)
+	ui.get_node("HBoxContainer/VBoxContainer").visible = false
+	ui.get_node("HBoxContainer/VBoxContainer/MenuButton").visible = false
 
 
 func show_ui():
-	$ui/inventory_ui.propagate_call("set_visible", [true], true)
-	$ui/tooltip.propagate_call("set_visible", [true], true)
-	$ui/HBoxContainer/VBoxContainer.visible = true
-	$ui/HBoxContainer/VBoxContainer/MenuButton.visible = true
+	ui.get_node("inventory_ui").propagate_call("set_visible", [true], true)
+	ui.get_node("tooltip").propagate_call("set_visible", [true], true)
+	ui.get_node("HBoxContainer/VBoxContainer").visible = true
+	ui.get_node("HBoxContainer/VBoxContainer/MenuButton").visible = true
 
 
 func hide_main_menu():
@@ -467,7 +468,7 @@ func _on_action_finished():
 func _on_event_done(_return_code: int, _event_name: String):
 	if _return_code == ESCExecution.RC_OK:
 		escoria.action_manager.clear_current_action()
-		$ui/tooltip.set_target("")
+		ui.get_node("tooltip").set_target("")
 		$mouse_layer/verbs_menu.set_by_name(VERB_WALK)
 
 
