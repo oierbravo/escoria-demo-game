@@ -262,8 +262,7 @@ func visit_var_stmt(stmt: ESCGrammarStmts.Var):
 	_environment.define(stmt.get_name().get_lexeme(), value)
 	return null
 
-
-func visit_global_stmt(stmt: ESCGrammarStmts.Global):
+func visit_global_stmt_old(stmt: ESCGrammarStmts.Global):
 	var value = null
 
 	if stmt.get_initializer():
@@ -277,6 +276,25 @@ func visit_global_stmt(stmt: ESCGrammarStmts.Global):
 
 	return null
 
+func visit_global_stmt(stmt: ESCGrammarStmts.Global):
+	var global_name = stmt.get_name().get_lexeme()
+	# Check global_manager. Return null if not found.
+	var value = escoria.globals_manager.get_global(global_name)
+
+	# With assignment
+	if stmt.get_initializer():
+		value = await _evaluate(stmt.get_initializer())
+
+
+	# Only define the global if we haven't already done so in the interpreter's environment
+	if not _globals.get_values().has(global_name) or stmt.get_initializer():
+		# Update global_manager if it doesn't exist or if we have a new value
+		if not escoria.globals_manager.has(global_name) or stmt.get_initializer():
+			escoria.globals_manager.set_global(global_name, value)
+		# Always define in interpreter's environment for local access
+		_globals.define(global_name, value)
+
+	return null
 
 func visit_dialog_stmt(stmt: ESCGrammarStmts.Dialog):
 	var dialog: ESCDialog = ESCDialog.new()
@@ -519,14 +537,35 @@ func _look_up_object_by_global_id(global_id: String):
 
 	return null
 
-
-func look_up_variable(name: ESCToken, expr: ESCGrammarExpr):
+func look_up_variable_old(name: ESCToken, expr: ESCGrammarExpr):
 	var distance: int = _locals[expr] if _locals.has(expr) else -1
 
 	if distance == -1:
 		return _globals.get_value(name)
 	else:
 		return _environment.get_at(distance, name.get_lexeme())
+
+
+func look_up_variable(name: ESCToken, expr: ESCGrammarExpr):
+	var global_name: String = name.get_lexeme()
+
+	var distance: int = _locals[expr] if _locals.has(expr) else -1
+
+	if distance == -1:
+		# First interpreter's local globals
+		if _globals.get_values().has(global_name):
+			return _globals.get_value(name)
+
+		# Fall back to globals_manager
+		var global_value = escoria.globals_manager.get_global(global_name)
+		if global_value != null:
+			# Define it in local environment for future access
+			_globals.define(global_name, global_value)
+			return global_value
+		# Raise error? allow to continue?
+		return null # allow to continue
+	else:
+		return _environment.get_at(distance, global_name)
 
 
 func look_up_global(name: ESCToken):
